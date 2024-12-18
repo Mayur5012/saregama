@@ -9,7 +9,7 @@ const MusicPlayer = () => {
 
     useEffect(() => {
         // fetch('https://saregamabackend.onrender.com/songs')
-        fetch('http://127.0.0.1:5000/songs')
+        fetch('https://saregamabackend.onrender.com/songs')
             .then((res) => {
                 if (!res.ok) {
                     throw new Error('Failed to fetch songs');
@@ -78,12 +78,12 @@ const MusicPlayer = () => {
         formData.append('file', file);
         formData.append('name', file.name);
 
-        await fetch('http://127.0.0.1:5000/upload', {
+        await fetch('https://saregamabackend.onrender.com/upload', {
             method: 'POST',
             body: formData,
         });
 
-        const updatedSongs = await fetch('http://127.0.0.1:5000/songs').then(res => res.json());
+        const updatedSongs = await fetch('https://saregamabackend.onrender.com/songs').then(res => res.json());
         setSongs(updatedSongs);
     };
 
