@@ -8,7 +8,7 @@ const MusicPlayer = () => {
     const [isPlaying, setIsPlaying] = useState(false);
 
     useEffect(() => {
-        fetch('https://saregamaplayer.vercel.app/songs')
+        fetch('https://saregamabackend.onrender.com/songs')
             .then((res) => {
                 if (!res.ok) {
                     throw new Error('Failed to fetch songs');
@@ -77,12 +77,12 @@ const MusicPlayer = () => {
         formData.append('file', file);
         formData.append('name', file.name);
 
-        await fetch('https://saregamaplayer.vercel.app/upload', {
+        await fetch('https://saregamabackend.onrender.com/upload', {
             method: 'POST',
             body: formData,
         });
 
-        const updatedSongs = await fetch('https://saregamaplayer.vercel.app/songs').then(res => res.json());
+        const updatedSongs = await fetch('https://saregamabackend.onrender.com/songs').then(res => res.json());
         setSongs(updatedSongs);
     };
 
