@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlay, FaPause, FaStepBackward, FaStepForward, FaUpload } from 'react-icons/fa';
+import { FaPlay, FaPause, FaStepBackward, FaStepForward, FaUpload, FaRandom } from 'react-icons/fa';
 
 const MusicPlayer = () => {
     const [songs, setSongs] = useState([]);
@@ -8,59 +8,55 @@ const MusicPlayer = () => {
     const [isPlaying, setIsPlaying] = useState(false);
 
     useEffect(() => {
-        // fetch('https://saregamabackend.onrender.com/songs')
         fetch('https://saregamabackend.onrender.com/songs')
             .then((res) => {
-                if (!res.ok) {
-                    throw new Error('Failed to fetch songs');
-                }
+                if (!res.ok) throw new Error('Failed to fetch songs');
                 return res.json();
             })
             .then((data) => setSongs(data))
             .catch((error) => console.error('Error fetching songs:', error));
     }, []);
-    
+
+    useEffect(() => {
+        if (audio) {
+            audio.addEventListener('ended', handleSongEnd);
+        }
+        return () => {
+            if (audio) audio.removeEventListener('ended', handleSongEnd);
+        };
+    }, [audio]);
+
     const playSong = (index) => {
         const selectedSong = songs[index];
         setCurrentSongIndex(index);
-        
+
         const songUrl = selectedSong.url || `https://saregama.s3.amazonaws.com/${selectedSong._id}`;
-        
-        console.log("Playing song from URL:", songUrl); // Check URL
-        
         const newAudio = new Audio(songUrl);
-        
-        if (audio) {
-            audio.pause();
-        }
-        
-        newAudio.play().catch((error) => {
-            console.error('Error playing song:', error);
-        });
-        
+
+        if (audio) audio.pause();
+        newAudio.play().catch((error) => console.error('Error playing song:', error));
+
         setAudio(newAudio);
         setIsPlaying(true);
     };
-    
 
+    const handleSongEnd = () => {
+        nextSong();
+    };
 
     const togglePlayPause = () => {
         if (!audio) {
             console.error('No audio to play');
-            return; // Return early if there is no audio object
+            return;
         }
-    
         if (isPlaying) {
             audio.pause();
             setIsPlaying(false);
         } else {
-            audio.play().catch(error => {
-                console.error('Error playing audio:', error);
-            });
+            audio.play().catch((error) => console.error('Error playing audio:', error));
             setIsPlaying(true);
         }
     };
-    
 
     const prevSong = () => {
         const prevIndex = (currentSongIndex - 1 + songs.length) % songs.length;
@@ -72,6 +68,29 @@ const MusicPlayer = () => {
         playSong(nextIndex);
     };
 
+    const shuffleSongs = () => {
+        const randomIndex = Math.floor(Math.random() * songs.length);
+        playSong(randomIndex);
+    };
+
+    // const uploadSong = async (e) => {
+    //     const files = e.target.files;
+    //     const formData = new FormData();
+    
+    //     // Append all files to formData
+    //     for (let i = 0; i < files.length; i++) {
+    //         formData.append('files', files[i]);
+    //     }
+    
+    //     await fetch('https://saregamabackend.onrender.com/upload', {
+    //         method: 'POST',
+    //         body: formData,
+    //     });
+    
+    //     const updatedSongs = await fetch('https://saregamabackend.onrender.com/songs').then((res) => res.json());
+    //     setSongs(updatedSongs);
+    // };
+    
     const uploadSong = async (e) => {
         const file = e.target.files[0];
         const formData = new FormData();
@@ -83,43 +102,78 @@ const MusicPlayer = () => {
             body: formData,
         });
 
-        const updatedSongs = await fetch('https://saregamabackend.onrender.com/songs').then(res => res.json());
+        const updatedSongs = await fetch('https://saregamabackend.onrender.com/songs').then((res) => res.json());
         setSongs(updatedSongs);
     };
 
     return (
-        <div className="app">
-            <div className="player">
-                <h1 className="song-title">{songs[currentSongIndex]?.name || 'Select a Song'}</h1>
-                <div className="controls">
-                    <button className="control-btn" onClick={prevSong}>
+        <div className="flex flex-col h-screen bg-black text-white">
+            <div className="flex flex-col items-center justify-center p-4 bg-black bg-opacity-50 backdrop-blur-md shadow-lg rounded-lg m-4">
+                <h1 className="text-2xl font-bold">{songs[currentSongIndex]?.name || 'Select a Song'}</h1>
+                <div className="flex gap-4 mt-4">
+                    <button
+                        className="p-4 rounded-full bg-gray-800 hover:bg-gray-700 transition"
+                        onClick={prevSong}
+                    >
                         <FaStepBackward />
                     </button>
-                    <button className="control-btn" onClick={togglePlayPause}>
+                    <button
+                        className="p-4 rounded-full bg-gray-800 hover:bg-gray-700 transition"
+                        onClick={togglePlayPause}
+                    >
                         {isPlaying ? <FaPause /> : <FaPlay />}
                     </button>
-                    <button className="control-btn" onClick={nextSong}>
+                    <button
+                        className="p-4 rounded-full bg-gray-800 hover:bg-gray-700 transition"
+                        onClick={nextSong}
+                    >
                         <FaStepForward />
                     </button>
                 </div>
-                <div className="upload-section">
-                    <label className="upload-label">
-                        <FaUpload className="upload-icon" />
-                        <input type="file" onChange={uploadSong} className="upload-input" />
+                <div className="mt-4">
+                    <label className="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-md cursor-pointer hover:bg-gray-700">
+                        <FaUpload />
+                        <span>Upload Song</span>
+                        <input type="file" onChange={uploadSong} className="hidden" />
+                        {/* <input type="file" onChange={uploadSong} className="hidden" multiple /> */}
+
                     </label>
                 </div>
             </div>
-            <div className="playlist">
-                <h2 className="playlist-title">Playlist</h2>
-                {songs.map((song, index) => (
-                    <div
-                        key={song._id}
-                        className={`song ${index === currentSongIndex ? 'active-song' : ''}`}
-                        onClick={() => playSong(index)}
+
+            {/* Playlist header and controls */}
+            <div className="mx-4 mb-4">
+                <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-semibold">Playlist</h2>
+                    <button
+                        className="p-2 bg-gray-800 hover:bg-gray-700 rounded-md transition"
+                        onClick={shuffleSongs}
                     >
-                        {song.name}
-                    </div>
-                ))}
+                        <FaRandom />
+                    </button>
+                </div>
+            </div>
+
+            {/* Playlist container */}
+            <div
+                className="flex-1 overflow-y-auto bg-gray-900 p-4 rounded-lg mx-4"
+                style={{ height: '50%' }}
+            >
+                <div className="space-y-2">
+                    {songs.map((song, index) => (
+                        <div
+                            key={song._id}
+                            className={`p-2 rounded-md text-center cursor-pointer ${
+                                index === currentSongIndex
+                                    ? 'bg-gray-700 font-bold'
+                                    : 'bg-gray-800 hover:bg-gray-700'
+                            }`}
+                            onClick={() => playSong(index)}
+                        >
+                            {song.name}
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );
